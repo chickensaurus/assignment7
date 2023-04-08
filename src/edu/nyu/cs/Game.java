@@ -12,18 +12,16 @@ import processing.sound.*; // import the processing sound library
  * Describe your game succinctly here, and update the author info below.
  * Some starter code has been included for your reference - feel free to delete or modify it.
  * 
- * @author Foo Barstein
+ * @author Linyi Huang (github: chickensaurus)
  * @version 0.1
  */
 public class Game extends PApplet {
 
-  private SoundFile soundStartup; // will refer to a sound file to play when the program first starts
   private SoundFile soundClick; // will refer to a sound file to play when the user clicks the mouse
   private PImage imgMe; // will hold a photo of me
-  private ArrayList<Star> stars; // will hold an ArrayList of Star objects
-  private final int NUM_STARS = 20; // the number of stars to create
-  private final int POINTS_PER_STAR = 1; // the number of points to award the user for each star they destroy
+  private ArrayList<Mole> moles; // will hold an ArrayList of Mole objects
   private int score = 0; // the user's score
+  private Player player; // holds player
 
 
 	/**
@@ -31,59 +29,51 @@ public class Game extends PApplet {
    * - Use it to set up the initial state of any instance properties you may use in the draw method.
 	 */
 	public void setup() {
-    // set the cursor to crosshairs
-    this.cursor(PApplet.CROSS);
-
-    // load up a sound file and play it once when program starts up
-		String cwd = Paths.get("").toAbsolutePath().toString(); // the current working directory as an absolute path
-		String path = Paths.get(cwd, "sounds", "vibraphon.mp3").toString(); // e.g "sounds/vibraphon.mp3" on Mac/Unix vs. "sounds\vibraphon.mp3" on Windows
-    this.soundStartup = new SoundFile(this, path);
-    this.soundStartup.play();
 
     // load up a sound file and play it once when the user clicks
-		path = Paths.get(cwd, "sounds", "thump.aiff").toString(); // e.g "sounds/thump.aiff" on Mac/Unix vs. "sounds\thump.aiff" on Windows
-    this.soundClick = new SoundFile(this, path); // if you're on Windows, you may have to change this to "sounds\\thump.aiff"
- 
+    String cwd = Paths.get("").toAbsolutePath().toString(); // the current working directory as an absolute path
+		String path = Paths.get(cwd, "sounds", "ow.wav").toString();
+    this.soundClick = new SoundFile(this, path);
+    
     // load up an image of me
-		path = Paths.get(cwd, "images", "me.png").toString(); // e.g "images/me.png" on Mac/Unix vs. "images\me.png" on Windows
+		path = Paths.get(cwd, "images", "background.png").toString();
     this.imgMe = loadImage(path);
 
     // some basic settings for when we draw shapes
     this.ellipseMode(PApplet.CENTER); // setting so ellipses radiate away from the x and y coordinates we specify.
     this.imageMode(PApplet.CENTER); // setting so the ellipse radiates away from the x and y coordinates we specify.
 
-    // create some stars, starting life at the center of the window
-    stars = new ArrayList<Star>();
-    for (int i=0; i<this.NUM_STARS; i++) {
-      // create a star and add it to the array list
-  		path = Paths.get(cwd, "images", "star.png").toString(); // e.g "images/star.png" on Mac/Unix vs. "images\star.png" on Windows
-      Star star = new Star(this, path, this.width/2, this.height/2);
-      this.stars.add(star);
+    // create some moles
+    moles = new ArrayList<Mole>();
+    for (int i=0; i<6; i++) {
+      // create a mole and add it to the array list
+      int[] x = {160,145,320,330,500,500}; //sets the coordinates where moles are to be drawn
+      int[] y = {90,350,230,540,100,350};
+  		path = Paths.get(cwd, "images", "mole.png").toString();
+      Mole mole = new Mole(this, path, x[i], y[i]);
+      this.moles.add(mole);
     }
+
+    path = Paths.get(cwd, "images", "hammerL.png").toString();
+    String path2 = Paths.get(cwd, "images", "hammerR.png").toString();
+    player = new Player(this, path, path2, 325,325);
 	}
 
 	/**
 	 * This method is called automatically by Processing every 1/60th of a second by default.
-   * - Use it to modify what is drawn to the screen.
-   * - There are methods for drawing various shapes, including `ellipse()`, `circle()`, `rect()`, `square()`, `triangle()`, `line()`, `point()`, etc.
+   * Draws background, each mole, player, and score
 	 */
 	public void draw() {
-    // fill the window with solid color
-    this.background(0, 0, 0); // fill the background with the specified r, g, b color.
-
-    // show an image of me that wanders around the window
     image(this.imgMe, this.width / 2, this.height/2); // draw image to center of window
 
-    // draw an ellipse at the current position of the mouse
-    this.fill(255, 255, 255); // set the r, g, b color to use for filling in any shapes we draw later.
-    this.ellipse(this.mouseX, this.mouseY, 60, 60); // draw an ellipse wherever the mouse is
-
-    // draw all stars to their current position
-    for (int i=0; i<this.stars.size(); i++) {
-      Star star = this.stars.get(i); // get the current Star object from the ArrayList
-      star.moveRandomly(); // move the star by a random amount
-      star.draw(); // draw the star to the screen
+    // draw all moles to their current position
+    for (int i=0; i<this.moles.size(); i++) {
+      Mole mole = this.moles.get(i); // get the current Mole object from the ArrayList
+      mole.appear(); 
+      mole.draw(); // draw the mole to the screen
     }
+
+    player.draw(); // draw player
 
     // show the score at the bottom of the window
     String scoreString = String.format("SCORE: %d", this.score);
@@ -92,45 +82,58 @@ public class Game extends PApplet {
 	}
 
 	/**
-	 * This method is automatically called by Processing every time the user presses a key while viewing the map.
-	 * - The `key` variable (type char) is automatically is assigned the value of the key that was pressed.
-	 * - The `keyCode` variable (type int) is automatically is assigned the numeric ASCII/Unicode code of the key that was pressed.
+	 * This method is automatically called by Processing every time the user presses a key.
+	 * Checks if key is w, a, s, d, or space to move accordingly or to whack mole
 	 */
 	public void keyPressed() {
     // the `key` variable holds the char of the key that was pressed, the `keyCode` variable holds the ASCII/Unicode numeric code for that key.
-		System.out.println(String.format("Key pressed: %s, key code: %d.", this.key, this.keyCode));
-	}  
-
-	/**
-	 * This method is automatically called by Processing every time the user clicks a mouse button.
-	 * - The `mouseX` and `mouseY` variables are automatically is assigned the coordinates on the screen when the mouse was clicked.
-   * - The `mouseButton` variable is automatically assigned the value of either the PApplet.LEFT or PApplet.RIGHT constants, depending upon which button was pressed.
-   */
-	public void mouseClicked() {
-		System.out.println(String.format("Mouse clicked at: %d:%d.", this.mouseX, this.mouseY));
-
-    // check whether we have clicked on a star
-    for (int i=0; i<this.stars.size(); i++) {
-      Star star = this.stars.get(i); // get the current Star object from the ArrayList
-      // check whether the position where the user clicked was within this star's boundaries
-      if (star.overlaps(this.mouseX, this.mouseY, 10)) {
-        // if so, award the user some points
-        score += POINTS_PER_STAR;        
-        // play a thump sound
-        this.soundClick.play();
-        // delete the star from the ArrayList
-        this.stars.remove(star);
+		if (key=='w') {
+      player.moveUp(true);
+    }
+    if (key=='a') {
+      player.moveLeft(true);
+      player.setDirection(true);
+    }
+    if (key=='s') {
+      player.moveDown(true);
+    }
+    if (key=='d') {
+      player.moveRight(true);
+      player.setDirection(false);
+    }
+    
+    if (key==' ') {
+      for (int i=0; i<this.moles.size(); i++) {
+        Mole mole = this.moles.get(i); // get the current Mole object from the ArrayList
+        // check whether the position where the user clicked was within this mole's boundaries
+        if (mole.overlaps(player.getX(), player.getY(), 50) && mole.getVisibility()==true) {
+          mole.remove();
+          // if so, award the user some points
+          score += mole.getMoleScore();
+          // play a ow sound
+          this.soundClick.play();
+        }
       }
     }
-	}
-
-	/**
-	 * This method is automatically called by Processing every time the user presses down and drags the mouse.
-	 * The `mouseX` and `mouseY` variables are automatically is assigned the coordinates on the screen when the mouse was clicked.
-   */
-	public void mouseDragged() {
-		System.out.println(String.format("Mouse dragging at: %d:%d.", mouseX, mouseY));
-	}
+	}  
+  /**
+	 * This method is automatically called by Processing every time the user releases a key.
+	 * Checks if key is w, a, s, or d to stop moving when user releases key.
+	 */
+  public void keyReleased() {
+    if (key=='w') {
+      player.moveUp(false);
+    }
+    if (key=='a') {
+      player.moveLeft(false);
+    }
+    if (key=='s') {
+      player.moveDown(false);
+    }
+    if (key=='d') {
+      player.moveRight(false);
+    }
+  }
 
   /**
    * A method that can be used to modify settings of the window, such as set its size.
@@ -138,7 +141,7 @@ public class Game extends PApplet {
    * Use the setup() method for most other tasks to perform when the program first runs.
    */
   public void settings() {
-		size(1200, 800); // set the map window size, using the OpenGL 2D rendering engine
+		size(650, 650); // set the map window size, using the OpenGL 2D rendering engine
 		System.out.println(String.format("Set up the window size: %d, %d.", width, height));    
   }
 
