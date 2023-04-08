@@ -9,8 +9,9 @@ import processing.core.*; // import the base Processing library
 import processing.sound.*; // import the processing sound library
 
 /**
- * Describe your game succinctly here, and update the author info below.
- * Some starter code has been included for your reference - feel free to delete or modify it.
+ * a game of whack a mole with a player controlled character
+ * uses w, a, s, d to move and space bar to whack
+ * score appears on bottom of screen
  * 
  * @author Linyi Huang (github: chickensaurus)
  * @version 0.1
